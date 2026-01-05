@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<title>Office Daily Observation System</title>
+
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow {
+    0% { box-shadow: 0 0 5px #4facfe; }
+    50% { box-shadow: 0 0 20px #4facfe; }
+    100% { box-shadow: 0 0 5px #4facfe; }
+}
+
+body {
+    font-family: "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.box {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    padding: 25px;
+    width: 420px;
+    border-radius: 15px;
+    animation: fadeIn 0.8s ease;
+    color: #fff;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+input, textarea {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+}
+
+textarea {
+    resize: none;
+    height: 90px;
+}
+
+button {
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.save {
+    background: #00c6ff;
+    color: #000;
+    animation: glow 2s infinite;
+}
+
+.logout {
+    background: #ff4b2b;
+    color: #fff;
+}
+
+.edit {
+    background: #ffc107;
+    color: #000;
+}
+
+.delete {
+    background: #dc3545;
+    color: #fff;
+}
+
+.report {
+    background: rgba(255,255,255,0.2);
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 10px;
+    animation: fadeIn 0.5s ease;
+}
+
+.hidden {
+    display: none;
+}
+
+#welcome {
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div class="box" id="loginBox">
+    <h2>Office Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button class="save" onclick="login()">Login</button>
+</div>
+
+<!-- REPORT SYSTEM -->
+<div class="box hidden" id="reportBox">
+    <h2>Daily Observation Reports</h2>
+    <p id="welcome"></p>
+
+    <input type="date" id="date">
+    <textarea id="observation" placeholder="නිරීක්ෂණ විස්තර..."></textarea>
+    <button class="save" onclick="saveReport()">Save / Update Report</button>
+    <button class="logout" onclick="logout()">Logout</button>
+
+    <div id="reports"></div>
+</div>
+
+<script>
+    const defaultUser = { username: "admin", password: "1234" };
+    let editIndex = null;
+
+    if (!localStorage.getItem("users")) {
+        localStorage.setItem("users", JSON.stringify([defaultUser]));
+    }
+
+    function login() {
+        let u = username.value;
+        let p = password.value;
+
+        let users = JSON.parse(localStorage.getItem("users"));
+        let ok = users.find(x => x.username === u && x.password === p);
+
+        if (ok) {
+            localStorage.setItem("loggedUser", u);
+            showSystem();
+        } else {
+            alert("Login Failed ❌");
+        }
+    }
+
+    function showSystem() {
+        let user = localStorage.getItem("loggedUser");
+        if (user) {
+            loginBox.classList.add("hidden");
+            reportBox.classList.remove("hidden");
+            welcome.innerHTML = "Welcome " + user;
+            loadReports();
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem("loggedUser");
+        location.reload();
+    }
+
+    function saveReport() {
+        let date = document.getElementById("date").value;
+        let obs = document.getElementById("observation").value;
+
+        if (date === "" || obs === "") {
+            alert("Fields empty ❌");
+            return;
+        }
+
+        let reports = JSON.parse(localStorage.getItem("reports")) || [];
+
+        if (editIndex === null) {
+            reports.push({ date, obs });
+        } else {
+            reports[editIndex] = { date, obs };
+            editIndex = null;
+        }
+
+        localStorage.setItem("reports", JSON.stringify(reports));
+        date.value = "";
+        observation.value = "";
+        loadReports();
+    }
+
+    function loadReports() {
+        let reports = JSON.parse(localStorage.getItem("reports")) || [];
+        let html = "";
+
+        reports.forEach((r, i) => {
+            html += `
+                <div class="report">
+                    <strong>Date:</strong> ${r.date}<br>
+                    <strong>Observation:</strong> ${r.obs}<br><br>
+                    <button class="edit" onclick="editReport(${i})">Edit</button>
+                    <button class="delete" onclick="deleteReport(${i})">Delete</button>
+                </div>
+            `;
+        });
+
+        document.getElementById("reports").innerHTML = html;
+    }
+
+    function editReport(index) {
+        let reports = JSON.parse(localStorage.getItem("reports"));
+        date.value = reports[index].date;
+        observation.value = reports[index].obs;
+        editIndex = index;
+    }
+
+    function deleteReport(index) {
+        if (!confirm("Delete this report?")) return;
+        let reports = JSON.parse(localStorage.getItem("reports"));
+        reports.splice(index, 1);
+        localStorage.setItem("reports", JSON.stringify(reports));
+        loadReports();
+    }
+
+    showSystem();
+</script>
+
+</body>
+</html>
